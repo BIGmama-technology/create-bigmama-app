@@ -7,7 +7,7 @@ function main() {
   const program = new Command()
     .name("bigmama-starter")
     .description("Bootstrap new projects with ease")
-    .version("0.0.0")
+    .version("0.0.1")
 
   program.addCommand(init)
 
