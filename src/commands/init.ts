@@ -64,7 +64,7 @@ export async function promptConfig(cwd: string, lang: SupportedLanguages) {
   }
 
   const spinner = ora(`Vscode config setup...`).start()
-  initVscode(cwd, lang)
+  initVscode(cwd, options.lang)
   spinner.succeed()
 
   return 0
