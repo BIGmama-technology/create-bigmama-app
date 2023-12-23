@@ -1,34 +1,32 @@
-import { existsSync, promises as fs } from "fs"
-import path from "path"
-import type { InitOptType, SupportedLanguages } from "@/src/types"
-import chalk from "chalk"
-import { Command } from "commander"
-import ora from "ora"
-import prompts, { type Choice } from "prompts"
-import { rimraf } from "rimraf"
+import { existsSync, promises as fs } from 'fs'
+import path from 'path'
+import type { InitOptType, SupportedLanguages } from '@/src/types'
+import { logger } from '@/src/utils/logger'
+import chalk from 'chalk'
+import { Command } from 'commander'
+import prompts, { type Choice } from 'prompts'
+import { rimraf } from 'rimraf'
 
 const languages: Choice[] = [
   {
-    title: " Python",
-    value: "python",
+    title: ' Python',
+    value: 'python',
   },
   {
-    title: "󰛦 Typescript",
-    value: "typescript",
+    title: '󰛦 Typescript',
+    value: 'typescript',
   },
   {
-    title: " Golang",
-    value: "golang",
+    title: ' Golang',
+    value: 'golang',
     disabled: true,
   },
 ]
 
 export const init = new Command()
-  .name("init")
-  .description("Initialize your project and add config files")
-  .option("-l, --language <lang>", "Language to use", "python")
-  .action(async (opts: InitOptType) => {
-    const lang = opts.language
+  .name('init')
+  .description('Initialize your project and add config files')
+  .action(async () => {
     const cwd = process.cwd()
 
     // Ensure target directory exists.
@@ -36,97 +34,145 @@ export const init = new Command()
       process.exit(1)
     }
 
-    await promptConfig(cwd, lang as SupportedLanguages)
+    await promptConfig(cwd)
   })
 
-export async function promptConfig(cwd: string, lang: SupportedLanguages) {
-  const highlight = (text: string) => chalk.cyan(text)
+const highlight = (text: string) => chalk.cyan(text)
 
+export async function promptConfig(cwd: string) {
   const options = await prompts([
     {
-      type: "select",
-      name: "lang",
-      message: `What ${highlight("language")} are you using?`,
+      type: 'select',
+      name: 'lang',
+      message: `What ${highlight('language')} are you using?`,
       choices: languages.map((language) => ({ ...language })),
-      initial: languages.findIndex((language) => language.value === lang),
+      initial: 0,
     },
   ])
+  const lang = options.lang
 
-  const { proceed } = await prompts({
-    type: "confirm",
-    name: "proceed",
-    message: `Write configuration to ${highlight(cwd)}. Proceed?`,
+  const { proceed: proceedVsCode } = await prompts({
+    type: 'confirm',
+    name: 'proceed',
+    message: `Write ${highlight('VsCode')} Configuration. Proceed?`,
     initial: true,
   })
-
-  if (!proceed) {
-    process.exit(0)
+  if (proceedVsCode) {
+    await initVscode(cwd, lang)
+  }
+  if (lang === 'typescript') {
+    const { proceed: proceedPrettier } = await prompts({
+      type: 'confirm',
+      name: 'proceed',
+      message: `Write ${highlight('prettier')} Configuration. Proceed?`,
+      initial: true,
+    })
+    if (proceedPrettier) {
+      await initPrettier(cwd)
+    }
+  } else if (lang === 'python') {
+    const { proceed: proceedPython } = await prompts({
+      type: 'confirm',
+      name: 'proceed',
+      message: `Write ${highlight('gitlint')} Configuration. Proceed?`,
+      initial: true,
+    })
+    if (proceedPython) {
+      await initGitlint(cwd)
+    }
   }
 
-  const spinner = ora(`Vscode config setup...`).start()
-  await initVscode(cwd, options.lang)
-  if (lang === "typescript") {
-    await initPrettier(cwd)
-  } else if (lang === "python") {
-    await initGitlint(cwd)
-  }
-  spinner.succeed()
+  logger.info('')
+  logger.info(`${chalk.green('Success!')} Project initialization completed.`)
+  logger.info('')
 }
 
 async function initPrettier(cwd: string) {
-  const configPath = cwd + "/.prettierrc"
-  const ignorePath = cwd + "/.prettierignore"
+  const configPath = cwd + '/.prettierrc'
+  const ignorePath = cwd + '/.prettierignore'
   if (!existsSync(configPath)) {
-    await fs.writeFile(
-      configPath,
-      JSON.stringify(prettierConfig.config, null, 2)
-    )
+    await fs.writeFile(configPath, JSON.stringify(prettierConfig.config, null, 2))
+  } else {
+    const { proceed } = await prompts({
+      type: 'confirm',
+      name: 'proceed',
+      message: `It already exists a ${highlight('.prettierrc')} config file. Overrite it?`,
+      initial: false,
+    })
+    if (proceed) {
+      await fs.writeFile(ignorePath, gitlintConfig)
+    }
   }
   if (!existsSync(ignorePath)) {
     await fs.writeFile(ignorePath, prettierConfig.ignore)
+  } else {
+    const { proceed } = await prompts({
+      type: 'confirm',
+      name: 'proceed',
+      message: `It already exists a ${highlight('.prettierignore')} config file. Overrite it?`,
+      initial: false,
+    })
+    if (proceed) {
+      await fs.writeFile(ignorePath, gitlintConfig)
+    }
   }
 }
 
 async function initGitlint(cwd: string) {
-  const gitlintPath = cwd + "/.gitlint"
+  const gitlintPath = cwd + '/.gitlint'
   if (!existsSync(gitlintPath)) {
     await fs.writeFile(gitlintPath, gitlintConfig)
+  } else {
+    const { proceed } = await prompts({
+      type: 'confirm',
+      name: 'proceed',
+      message: `It already exists a ${highlight('.gitlint')} config file. Overrite it?`,
+      initial: false,
+    })
+    if (proceed) {
+      await fs.writeFile(gitlintPath, gitlintConfig)
+    }
   }
 }
 
 async function initVscode(cwd: string, lang: SupportedLanguages) {
-  const vsCodePath = path.resolve(cwd, ".vscode")
+  const vsCodePath = path.resolve(cwd, '.vscode')
   if (existsSync(vsCodePath)) {
-    rimraf.sync(vsCodePath)
+    const { proceed } = await prompts({
+      type: 'confirm',
+      name: 'proceed',
+      message: `It already exists a ${highlight('.vscode')} config dir. Overrite it?`,
+      initial: false,
+    })
+    if (proceed) {
+      rimraf.sync(vsCodePath)
+    }
   }
   await fs.mkdir(vsCodePath, { recursive: true })
-  await fs.writeFile(
-    vsCodePath + "/settings.json",
-    JSON.stringify(vscodeConfigs[lang], null, 2)
-  )
+  await fs.writeFile(vsCodePath + '/settings.json', JSON.stringify(vscodeConfigs[lang], null, 2))
 }
 
 const vscodeConfigs: Record<SupportedLanguages, Record<string, any>> = {
   python: {
-    "python.analysis.typeCheckingMode": "strict",
-    "python.analysis.autoImportCompletions": true,
-    "editor.formatOnSave": true,
-    "editor.defaultFormatter": "charliermarsh.ruff",
-    "editor.codeActionsOnSave": {
-      "source.organizeImports": true,
-      "source.fixAll": true,
+    'python.analysis.typeCheckingMode': 'strict',
+    'python.analysis.autoImportCompletions': true,
+    'editor.formatOnSave': true,
+    'editor.defaultFormatter': 'charliermarsh.ruff',
+    'editor.codeActionsOnSave': {
+      'source.organizeImports': true,
+      'source.fixAll': true,
     },
-    "[jsonc]": {
-      "editor.defaultFormatter": "vscode.json-language-features",
+    '[jsonc]': {
+      'editor.defaultFormatter': 'vscode.json-language-features',
     },
   },
   typescript: {
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.formatOnSave": true,
-    "editor.codeActionsOnSave": {
-      "source.organizeImports": true,
-      "source.fixAll.eslint": true,
-      "source.fixAll": true,
+    'editor.defaultFormatter': 'esbenp.prettier-vscode',
+    'editor.formatOnSave': true,
+    'editor.codeActionsOnSave': {
+      'source.organizeImports': true,
+      'source.fixAll.eslint': true,
+      'source.fixAll': true,
     },
   },
   golang: {},
@@ -138,14 +184,14 @@ const prettierConfig = {
     singleQuote: true,
     semi: false,
     tabWidth: 2,
-    trailingComma: "all",
+    trailingComma: 'all',
     printWidth: 100,
     bracketSameLine: false,
     useTabs: false,
-    arrowParens: "always",
-    endOfLine: "auto",
+    arrowParens: 'always',
+    endOfLine: 'auto',
   },
-  ignore: ".yarn\n.next\ndist\nnode_modules",
+  ignore: '.yarn\n.next\ndist\nnode_modules',
 }
 
 const gitlintConfig = `
