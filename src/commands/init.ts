@@ -64,10 +64,25 @@ export async function promptConfig(cwd: string, lang: SupportedLanguages) {
   }
 
   const spinner = ora(`Vscode config setup...`).start()
-  initVscode(cwd, options.lang)
+  await initVscode(cwd, options.lang)
+  if (lang === "typescript") {
+    await initPrettier(cwd)
+  }
   spinner.succeed()
+}
 
-  return 0
+async function initPrettier(cwd: string) {
+  const configPath = cwd + "/.prettierrc"
+  const ignorePath = cwd + "/.prettierignore"
+  if (!existsSync(configPath)) {
+    await fs.writeFile(
+      configPath,
+      JSON.stringify(prettierConfig.config, null, 2)
+    )
+  }
+  if (!existsSync(ignorePath)) {
+    await fs.writeFile(ignorePath, prettierConfig.ignore)
+  }
 }
 
 async function initVscode(cwd: string, lang: SupportedLanguages) {
@@ -106,4 +121,20 @@ const vscodeConfigs: Record<SupportedLanguages, Record<string, any>> = {
     },
   },
   golang: {},
+}
+
+const prettierConfig = {
+  config: {
+    jsxSingleQuote: true,
+    singleQuote: true,
+    semi: false,
+    tabWidth: 2,
+    trailingComma: "all",
+    printWidth: 100,
+    bracketSameLine: false,
+    useTabs: false,
+    arrowParens: "always",
+    endOfLine: "auto",
+  },
+  ignore: ".yarn\n.next\ndist\nnode_modules",
 }
