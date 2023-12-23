@@ -1,6 +1,9 @@
 {
   "name": "create-bigmama-app",
-  "version": "1.0.0",
+  "version": "0.0.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "This package is for bootstraping new projects (ts, py, go...)",
   "repository": {
     "type": "git",
