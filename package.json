@@ -1,0 +1,30 @@
+{
+  "name": "create-bigmama-app",
+  "version": "1.0.0",
+  "description": "This package is for bootstraping new projects (ts, py, go...)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/strlrd-29/create-bigmama-app.git"
+  },
+  "keywords": [
+    "Starter",
+    "Javascript",
+    "Typescript",
+    "Python",
+    "Golang"
+  ],
+  "author": "Ouassim Abdelmalek Ghribi",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/strlrd-29/create-bigmama-app/issues"
+  },
+  "homepage": "https://github.com/strlrd-29/create-bigmama-app#readme",
+  "devDependencies": {
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3"
+  }
+}
